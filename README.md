@@ -1,53 +1,119 @@
-| Supported Targets | ESP32 | ESP32-C2 | ESP32-C3 | ESP32-C5 | ESP32-C6 | ESP32-C61 | ESP32-H2 | ESP32-P4 | ESP32-S2 | ESP32-S3 | Linux |
-| ----------------- | ----- | -------- | -------- | -------- | -------- | --------- | -------- | -------- | -------- | -------- | ----- |
+## 📦 Tutorial: ESP32 Preparation & Flashing for Remote `.bin` Download
 
-# Hello World Example
+> **Board:** ESP32-DOIT Development Board
+> **OS Environment:** Windows 11
+> **ESP-IDF Version:** 5.4
+> **Flash Size Requirement:** **Serial flash must be set to 4MB**
 
-Starts a FreeRTOS task to print "Hello World".
+---
 
-(See the README.md file in the upper level 'examples' directory for more information about examples.)
+### 🧪 Flashing and Setup Steps (ESP-IDF v5.4)
 
-## How to use example
+1. **Set the ESP32 target**
 
-Follow detailed instructions provided specifically for this example.
+   ```bash
+   idf.py set-target esp32
+   ```
 
-Select the instructions depending on Espressif chip installed on your development board:
+2. **Open `menuconfig` to configure flash size and use a custom partition table**
 
-- [ESP32 Getting Started Guide](https://docs.espressif.com/projects/esp-idf/en/stable/get-started/index.html)
-- [ESP32-S2 Getting Started Guide](https://docs.espressif.com/projects/esp-idf/en/latest/esp32s2/get-started/index.html)
+   ```bash
+   idf.py menuconfig
+   ```
+
+   In the configuration menu:
+
+   ```
+   → Serial flasher config
+       → Flash size: "4MB"            ✅ (Must be 4MB or larger)
+
+   → Partition Table
+       → Partition Table: "Custom partition table CSV" ✅
+       → Custom partition CSV file: "partitions.csv"
+   ```
+
+   > 🛠 **Important:** You **must** set the Partition Table mode to **"Custom partition table CSV"**, and specify the correct filename (`partitions.csv`) to match the custom layout below.
+
+3. **Use the following `partition.csv` file in your project root**
+
+   ```csv
+   # Name,      Type, SubType, Offset,   Size
+   nvs,         data, nvs,     0x9000,   0x6000
+   phy_init,    data, phy,     0xf000,   0x1000
+   factory,     app,  factory, 0x10000,  0x140000
+   binary,      data, 0x40,    0x150000, 0x100000
+   ```
+
+   > ⚠️ This layout requires at least **4MB flash size**, since the `binary` partition starts at `0x150000` and occupies 1MB (`0x100000`).
+
+4. **Build the project**
+
+   ```bash
+   idf.py build
+   ```
+
+5. **Flash the project to the ESP32-DOIT board**
+
+   ```bash
+   idf.py flash monitor
+   ```
 
 
-## Example folder contents
+6. **(⚠️ Note on VSCode + ESP-IDF Extension Flashing Issues)**
 
-The project **hello_world** contains one source file in C language [hello_world_main.c](main/hello_world_main.c). The file is located in folder [main](main).
+    > Many users have reported that **flashing via the VSCode ESP-IDF extension** occasionally fails, especially on Windows systems with certain USB drivers or high-speed baud rates.
 
-ESP-IDF projects are built using CMake. The project build configuration is contained in `CMakeLists.txt` files that provide set of directives and instructions describing the project's source files and targets (executable, library, or both).
+    Symptoms include:
 
-Below is short explanation of remaining files in the project folder.
+    * Upload process stuck at "Connecting..."
+    * Error: `Timed out waiting for packet header`
+    * Flashing fails silently, or binary is not executed
 
-```
-├── CMakeLists.txt
-├── pytest_hello_world.py      Python script used for automated testing
-├── main
-│   ├── CMakeLists.txt
-│   └── hello_world_main.c
-└── README.md                  This is the file you are currently reading
-```
+    🛠️ **Recommendation:** Use a standalone terminal to flash manually with `esptool.py`.
 
-For more information on structure and contents of ESP-IDF projects, please refer to Section [Build System](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-guides/build-system.html) of the ESP-IDF Programming Guide.
 
-## Troubleshooting
+7. **✅ Recommended: Manually flash your compiled binary**
 
-* Program upload failure
+    Once your firmware (`flash_binary.bin`) is built successfully using `idf.py build`, flash it manually:
 
-    * Hardware connection is not correct: run `idf.py -p PORT monitor`, and reboot your board to see if there are any output logs.
-    * The baud rate for downloading is too high: lower your baud rate in the `menuconfig` menu, and try again.
+    ```bash
+    esptool.py -p COM4 -b 460800 write_flash 0x10000 flash_binary.bin
+    ```
 
-## Technical support and feedback
+    ✅ Parameters explained:
 
-Please use the following feedback channels:
+    * `-p COM4`: Replace with the actual COM port of your ESP32
+    * `-b 460800`: Flash baud rate (you may try 115200 if unstable)
+    * `0x10000`: Offset for the `factory` app partition
+    * `flash_binary.bin`: Path to the built binary (usually in `build/` folder)
 
-* For technical queries, go to the [esp32.com](https://esp32.com/) forum
-* For a feature request or bug report, create a [GitHub issue](https://github.com/espressif/esp-idf/issues)
+    > 💡 Tip: Make sure your ESP32-DOIT board is in **bootloader mode** when flashing.
+    > You can hold the **BOOT** button while pressing **EN** (reset), then release **EN**, and finally release **BOOT**.
 
-We will get back to you as soon as possible.
+
+    ### ✅ Checklist for Success
+
+    * Flash size set to **4MB** in `menuconfig`
+    * Partition Table set to **Custom CSV**
+    * Flashing via `esptool.py` completes without errors
+    * ESP32-DOIT boots and connects to Wi-Fi
+    * Binary is downloaded and written to `binary` partition
+    * Serial monitor shows 64-byte hex dump for verification
+
+
+
+8. **Monitor the serial output**
+   You should see logs like:
+
+   ```
+    I (5566) bin_downloader: 📥 Written 61440 bytes...
+    I (5706) bin_downloader: 📥 Written 65536 bytes...
+    I (5706) bin_downloader: ✅ HTTP download complete
+    I (5716) bin_downloader: ✅ Done. Total downloaded: 65536 bytes
+    I (5716) bin_downloader: 🔍 Verify: Read back first 64 bytes:
+    I (5716) bin_downloader: 0x3ffba9c8   aa aa aa aa aa aa aa aa  aa aa aa aa aa aa aa aa  |................|
+    I (5726) bin_downloader: 0x3ffba9d8   aa aa aa aa aa aa aa aa  aa aa aa aa aa aa aa aa  |................|
+    I (5736) bin_downloader: 0x3ffba9e8   aa aa aa aa aa aa aa aa  aa aa aa aa aa aa aa aa  |................|
+    I (5746) bin_downloader: 0x3ffba9f8   aa aa aa aa aa aa aa aa  aa aa aa aa aa aa aa aa  |................|
+   ```
+
