@@ -1,14 +1,20 @@
-from flask import Flask, send_from_directory
+from flask import Flask, send_file
 import os
 
 app = Flask(__name__)
 
-# 設定 firmware 目錄路徑
-FIRMWARE_DIR = os.path.join(os.path.dirname(__file__), "firmware")
-
 @app.route("/firmware/<filename>")
 def download_firmware(filename):
-    return send_from_directory(FIRMWARE_DIR, filename, as_attachment=True)
+    abs_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "firmware"))
+    filepath = os.path.join(abs_dir, filename)
+
+    if not os.path.exists(filepath):
+        return "❌ File not found", 404
+
+    return send_file(filepath,
+                     mimetype="application/octet-stream",
+                     as_attachment=True,
+                     download_name=filename)
 
 if __name__ == "__main__":
-    app.run()
+    app.run(host="0.0.0.0", port=5000)
