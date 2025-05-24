@@ -157,6 +157,18 @@ void app_main(void)
 
     ESP_LOGI(TAG, "✅ Done. Total downloaded: %d bytes", total_bytes);
     
+    // ✅ 驗證前 64 bytes
+    uint8_t read_buf[64] = {0};
+    esp_err_t read_res = esp_partition_read(partition, 0, read_buf, sizeof(read_buf));
+    if (read_res == ESP_OK)
+    {
+        ESP_LOGI(TAG, "🔍 Verify: Read back first 64 bytes:");
+        ESP_LOG_BUFFER_HEXDUMP(TAG, read_buf, sizeof(read_buf), ESP_LOG_INFO);
+    }
+    else
+    {
+        ESP_LOGE(TAG, "❌ Failed to read partition for verification");
+    }
     while (1)
     {
         ESP_LOGI(TAG, "🟢 Waiting...");
@@ -164,55 +176,3 @@ void app_main(void)
     }
 }
 
-// #include <string.h>
-// #include <stdio.h>
-// #include "esp_log.h"
-// #include "esp_system.h"
-// #include "nvs_flash.h"
-// #include "esp_partition.h"
-
-// static const char *TAG = "partition_test";
-
-// void app_main(void) {
-//     ESP_LOGI(TAG, "Initializing NVS");
-//     esp_err_t ret = nvs_flash_init();
-//     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
-//         ESP_ERROR_CHECK(nvs_flash_erase());
-//         ESP_ERROR_CHECK(nvs_flash_init());
-//     }
-
-//     // 尋找名為 "binary" 的 partition
-//     ESP_LOGI(TAG, "Looking for partition 'binary'");
-//     const esp_partition_t *partition = esp_partition_find_first(
-//         ESP_PARTITION_TYPE_DATA, 0x40, "binary");
-
-//     if (!partition) {
-//         ESP_LOGE(TAG, "Partition 'binary' not found!");
-//         return;
-//     }
-
-//     ESP_LOGI(TAG, "Found partition at offset 0x%X, size 0x%X",
-//              (unsigned int)partition->address, (unsigned int)partition->size);
-
-//     // 準備測試資料
-//     uint8_t test_data[16];
-//     for (int i = 0; i < sizeof(test_data); i++) {
-//         test_data[i] = i;
-//     }
-
-//     ESP_LOGI(TAG, "Writing test data to partition...");
-//     ESP_ERROR_CHECK(esp_partition_erase_range(partition, 0, 0x1000));  // 清除一個 sector
-//     ESP_ERROR_CHECK(esp_partition_write(partition, 0, test_data, sizeof(test_data)));
-
-//     // 讀回驗證
-//     uint8_t readback[16] = {0};
-//     ESP_ERROR_CHECK(esp_partition_read(partition, 0, readback, sizeof(readback)));
-
-//     ESP_LOGI(TAG, "Readback:");
-//     for (int i = 0; i < sizeof(readback); i++) {
-//         printf("%02X ", readback[i]);
-//     }
-//     printf("\n");
-
-//     ESP_LOGI(TAG, "Partition test done.");
-// }
