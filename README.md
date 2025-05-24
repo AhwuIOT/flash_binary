@@ -1,9 +1,9 @@
 ## 📦 Tutorial: ESP32 Preparation & Flashing for Remote `.bin` Download
 
-> **Board:** ESP32-DOIT Development Board
-> **OS Environment:** Windows 11
-> **ESP-IDF Version:** 5.4
-> **Flash Size Requirement:** **Serial flash must be set to 4MB**
+- **Board:** ESP32-DOIT Development Board
+- **OS Environment:** Windows 11
+- **ESP-IDF Version:** 5.4
+- **Flash Size Requirement:** **Serial flash must be set to 4MB**
 
 ---
 
